@@ -1,4 +1,6 @@
-﻿using Native;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Native;
 using PDFRenderer.Page;
 
 namespace PDFRenderer.Bitmap;
@@ -54,6 +56,51 @@ public unsafe class PDFBitmap : IDisposable
         // FPDF_ANNOT 0x01
         // FPDF_REVERSE_BYTE_ORDER 0x10
         NativeMethods.FPDF_RenderPageBitmap(_bitmapPtr, page._pagePtr, 0, 0, Width, Height, 0, 0x01 | 0x10);
+    }
+    
+    public Task<bool> RenderAsync(PDFPage page, CancellationToken cancellationToken = default)
+    {
+        // ReSharper disable once MethodSupportsCancellation
+        return Task.Run(() =>
+        {
+            GCHandle handle = GCHandle.Alloc(cancellationToken);
+            try
+            {
+                void* handlePtr = (void*)GCHandle.ToIntPtr(handle);
+                int result = StartNativeRender(_bitmapPtr, page._pagePtr, Width, Height, handlePtr);
+                NativeMethods.FPDF_RenderPage_Close(page._pagePtr);
+                return result == 2;
+            }
+            finally
+            {
+                handle.Free();
+            }
+        });
+
+        static int StartNativeRender(fpdf_bitmap_t__* bitmap, fpdf_page_t__* pagePtr, int width, int height, void* userPtr)
+        {
+            _IFSDK_PAUSE pauseFlag = new _IFSDK_PAUSE
+            {
+                version = 1,
+                NeedToPauseNow = &ShouldPause,
+                user = userPtr
+            };
+            
+            return NativeMethods.FPDF_RenderPageBitmap_Start(bitmap, pagePtr, 0, 0, width, height, 0, 0x01 | 0x10, &pauseFlag);
+        }
+
+        [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+        static int ShouldPause(_IFSDK_PAUSE* pauseStruct)
+        {
+            GCHandle handle = GCHandle.FromIntPtr((IntPtr)pauseStruct->user);
+
+            if (handle.Target is CancellationToken token)
+            {
+                return token.IsCancellationRequested ? 1 : 0;
+            }
+
+            return 0;
+        }
     }
     
     public Span<byte> GetRGBAByteData()

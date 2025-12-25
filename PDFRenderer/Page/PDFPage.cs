@@ -4,16 +4,19 @@ namespace PDFRenderer.Page;
 
 public unsafe class PDFPage : IDisposable
 {
-    private readonly fpdf_page_t__* _pagePtr;
+    internal readonly fpdf_page_t__* _pagePtr;
     
     public int PageIndex { get; private set; }
-    public double Width => NativeMethods.FPDF_GetPageWidth(_pagePtr);
-    public double Height => NativeMethods.FPDF_GetPageHeight(_pagePtr);
-
+    public double Width { get; private set; }
+    public double Height { get; private set; }
+    
     private PDFPage(fpdf_page_t__* pagePtr, int index)
     {
         _pagePtr = pagePtr;
         PageIndex = index;
+        
+        Width = NativeMethods.FPDF_GetPageWidth(_pagePtr);   
+        Height = NativeMethods.FPDF_GetPageHeight(_pagePtr); 
     }
     
     internal static PDFPage Load(fpdf_document_t__* documentPtr, int index)

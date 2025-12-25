@@ -10,11 +10,12 @@ public unsafe class PDFDocument : IDisposable
     
     private readonly fpdf_document_t__* _documentPtr;
     
-    public int PageCount => NativeMethods.FPDF_GetPageCount(_documentPtr);
+    public int PageCount { get; private set; }
 
     private PDFDocument(fpdf_document_t__* documentPtr)
     {
         _documentPtr = documentPtr;
+        PageCount = NativeMethods.FPDF_GetPageCount(_documentPtr);
     }
 
     private static void EnsureInitialized()
@@ -62,7 +63,7 @@ public unsafe class PDFDocument : IDisposable
         return document;
     }
 
-    public static void Unload()
+    public static void UnloadLibrary()
     {
         if (IsInitialized)
         {
@@ -72,8 +73,7 @@ public unsafe class PDFDocument : IDisposable
 
     public PDFPage LoadPage(int pageIndex)
     {
-        int pageCount = PageCount;
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, pageCount, nameof(pageIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, PageCount, nameof(pageIndex));
         ArgumentOutOfRangeException.ThrowIfLessThan(pageIndex, 0, nameof(pageIndex));
         
         return PDFPage.Load(_documentPtr, pageIndex);

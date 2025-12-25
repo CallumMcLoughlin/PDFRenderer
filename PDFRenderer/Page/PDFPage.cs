@@ -7,16 +7,16 @@ public unsafe class PDFPage : IDisposable
     internal readonly fpdf_page_t__* _pagePtr;
     
     public int PageIndex { get; private set; }
-    public double Width { get; private set; }
-    public double Height { get; private set; }
+    public float Width { get; private set; }
+    public float Height { get; private set; }
     
     private PDFPage(fpdf_page_t__* pagePtr, int index)
     {
         _pagePtr = pagePtr;
         PageIndex = index;
         
-        Width = NativeMethods.FPDF_GetPageWidth(_pagePtr);   
-        Height = NativeMethods.FPDF_GetPageHeight(_pagePtr); 
+        Width = NativeMethods.FPDF_GetPageWidthF(_pagePtr);   
+        Height = NativeMethods.FPDF_GetPageHeightF(_pagePtr); 
     }
     
     internal static PDFPage Load(fpdf_document_t__* documentPtr, int index)
